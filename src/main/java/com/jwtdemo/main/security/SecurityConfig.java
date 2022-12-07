@@ -4,28 +4,29 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfiguration;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import com.jwtdemo.main.repository.UserRepo;
 import com.jwtdemo.main.services.MyUserDetailsService;
 
 import jakarta.servlet.http.HttpServletResponse;
 
 @Configuration
 @EnableWebSecurity
-public class SecurityConfig extends WebSecurityConfigurerAdapter {
+public class SecurityConfig extends WebSecurityConfig {
 
-    @Autowired private UserRepo userRepo;
-    @Autowired private JWTFilter filter;
-    @Autowired private MyUserDetailsService uds;
 
-    @Override
+    @Autowired
+    private JWTFilter filter;
+    @Autowired
+    private MyUserDetailsService uds;
+
+    @Bean
     protected void configure(HttpSecurity http) throws Exception {
         http.csrf().disable()
                 .httpBasic().disable()
@@ -33,14 +34,13 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .and()
                 .authorizeHttpRequests()
                 .requestMatchers("/api/auth/**").permitAll()
-                // .antMatchers("/api/user/**").hasRole("USER")
+                .requestMatchers("/api/user/**").hasRole("USER")
                 .and()
                 .userDetailsService(uds)
                 .exceptionHandling()
-                    .authenticationEntryPoint(
-                            (request, response, authException) ->
-                                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized")
-                    )
+                .authenticationEntryPoint(
+                        (request, response, authException) -> response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
+                                "Unauthorized"))
                 .and()
                 .sessionManagement()
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
@@ -54,8 +54,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     }
 
     @Bean
-    @Override
-    public AuthenticationManager authenticationManagerBean() throws Exception {
-        return super.authenticationManagerBean();
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfiguration) throws Exception {
+        return authConfiguration.getAuthenticationManager();
     }
 }
